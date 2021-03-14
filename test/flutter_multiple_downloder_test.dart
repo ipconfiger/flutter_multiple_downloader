@@ -10,6 +10,8 @@ void main() {
         "http://app01.78x56.com/Xii_2021-03-13%2010%EF%BC%9A41.ipa",
         p: 7);
     await dl.download(onPercentage: (done, total) => {print("$done/$total")});
+    final data = dl.state.asList();
+    expect(data.length, dl.state.fileSize);
   });
   test('streamd download', () async {
     Downloader dl = new Downloader(

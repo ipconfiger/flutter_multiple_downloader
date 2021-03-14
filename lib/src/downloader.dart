@@ -114,9 +114,9 @@ class Downloader {
   }
 
   Future processor(ProcessState state, int pid, int pcount) async {
-    for (var i = 0; i < state.chunks.length; i++) {
-      if (i % pcount == pid) {
-        final st = await downChunk(state, i);
+    for (var chunk in state.chunks) {
+      if (chunk.partNumber % pcount == pid) {
+        final st = await downChunk(state, chunk.partNumber - 1);
         if (controller != null) {
           controller.add(st);
         }
@@ -127,7 +127,7 @@ class Downloader {
     }
     if (state.successCount == state.chunks.length) {
       if (controller != null) {
-        print('close stream');
+        //print('close stream');
         await controller.close();
       }
     }
@@ -137,13 +137,15 @@ class Downloader {
     Chunk ck = state.chunks[idx];
     HttpClient c = new HttpClient();
     final req = await c.getUrl(Uri.parse(state.url));
-    req.headers.add('Range', "bytes=${ck.startOffset}-${ck.endOffset}");
+    req.headers.add('Range', "bytes=${ck.startOffset}-${ck.endOffset - 1}");
+    //print("bytes=${ck.startOffset}-${ck.endOffset - 1}");
     final resp = await req.close();
     if (resp.statusCode >= 200 && resp.statusCode < 300) {
       for (var ls in await resp.toList()) {
         ck.data.addAll(ls);
       }
     }
+    //print('chunk data: ${ck.data.length}');
     state.successCount++;
     return state;
   }
