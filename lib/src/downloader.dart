@@ -78,11 +78,13 @@ class Downloader {
   int processors;
   StreamController<ProcessState> controller;
   OnPercentage _onPercentage;
+  bool noError;
 
   Downloader(String url, {int chunkSize: 501001, int p: 2}) {
     state = ProcessState(url, chunkSize: chunkSize);
     client = new HttpClient();
     processors = p;
+    noError = true;
   }
 
   Future<ProcessState> download({OnPercentage onPercentage}) async {
@@ -121,12 +123,22 @@ class Downloader {
   Future processor(ProcessState state, int pid, int pcount) async {
     for (var chunk in state.chunks) {
       if (chunk.partNumber % pcount == pid) {
-        final st = await downChunk(state, chunk.partNumber - 1);
-        if (controller != null) {
-          controller.add(st);
-        }
-        if (_onPercentage != null) {
-          _onPercentage(st.successCount, st.chunks.length);
+        try {
+          final st = await downChunk(state, chunk.partNumber - 1);
+          if (controller != null) {
+            controller.add(st);
+          }
+          if (_onPercentage != null) {
+            _onPercentage(st.successCount, st.chunks.length);
+          }
+        } on DownloadFailureException catch (e) {
+          this.noError = false;
+          if (controller != null) {
+            print('close stream');
+            controller.close();
+          } else {
+            return;
+          }
         }
       }
     }
