@@ -7,6 +7,11 @@ class UnsupportedException extends Error {
   String errMsg() => "Not support range request";
 }
 
+class DownloadFailureException extends Error {
+  @override
+  String errMsg() => "Download Failure";
+}
+
 class Chunk {
   int partNumber;
   int startOffset;
@@ -127,8 +132,8 @@ class Downloader {
     }
     if (state.successCount == state.chunks.length) {
       if (controller != null) {
-        //print('close stream');
-        await controller.close();
+        print('close stream');
+        controller.close();
       }
     }
   }
@@ -144,6 +149,8 @@ class Downloader {
       for (var ls in await resp.toList()) {
         ck.data.addAll(ls);
       }
+    } else {
+      throw DownloadFailureException();
     }
     //print('chunk data: ${ck.data.length}');
     state.successCount++;
