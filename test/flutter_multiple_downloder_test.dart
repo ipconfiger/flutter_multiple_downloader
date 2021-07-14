@@ -11,20 +11,22 @@ void main() {
       final data = dl.state.asList();
       expect(data.length, dl.state.fileSize);
     }
+    dl.markFinished();
   });
   test('streamd download', () async {
     Downloader dl = new Downloader(
         "http://app01.78x56.com/Xii_2021-03-13%2010%EF%BC%9A41.ipa",
         p: 11);
 
-    final st = await dl.downStream();
+    final st = dl.fetching ? dl.controller.stream : await dl.downStream();
     print("test returned");
-    await st.forEach((state) {
+    await for (var state in st) {
       print("${state.successCount}/${state.chunks.length}");
-    });
+    }
     if (dl.noError) {
       final data = dl.state.asList();
       print('file download success length:${data.length}');
     }
+    dl.markFinished();
   });
 }

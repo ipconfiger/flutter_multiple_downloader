@@ -73,18 +73,28 @@ class ProcessState {
 typedef void OnPercentage(int done, int total);
 
 class Downloader {
+  static final Map<String, Downloader> _cache = <String, Downloader>{};
   ProcessState state;
   HttpClient client;
   int processors;
+  String downloadUrl;
   StreamController<ProcessState> controller;
   OnPercentage _onPercentage;
   bool noError;
+  bool fetching;
 
-  Downloader(String url, {int chunkSize: 501001, int p: 2}) {
+  factory Downloader(String url, {int chunkSize: 501001, int p: 2}) {
+    return _cache.putIfAbsent(
+        url, () => Downloader._internal(url, chunkSize: chunkSize, p: p));
+  }
+
+  Downloader._internal(String url, {int chunkSize: 501001, int p: 2}) {
+    downloadUrl = url;
     state = ProcessState(url, chunkSize: chunkSize);
     client = new HttpClient();
     processors = p;
     noError = true;
+    fetching = false;
   }
 
   Future<ProcessState> download({OnPercentage onPercentage}) async {
@@ -97,11 +107,17 @@ class Downloader {
     final fileSize = int.parse(resp.headers['content-length'].first);
     this.state.init(fileSize);
     final indexies = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
+    fetching = true;
     final futrues = indexies
         .sublist(0, processors)
         .map((pid) => processor(state, pid, processors));
     await Future.wait(futrues);
+    fetching = false;
     return state;
+  }
+
+  markFinished() {
+    _cache.remove(this.downloadUrl);
   }
 
   Future<Stream<ProcessState>> downStream() async {
@@ -114,6 +130,7 @@ class Downloader {
     this.state.init(fileSize);
     controller = new StreamController<ProcessState>();
     final indexies = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
+    fetching = true;
     for (var pid in indexies.sublist(0, processors)) {
       processor(state, pid, processors);
     }
@@ -135,6 +152,7 @@ class Downloader {
           this.noError = false;
           if (controller != null) {
             print('close stream');
+            fetching = false;
             controller.close();
           } else {
             return;
@@ -145,6 +163,7 @@ class Downloader {
     if (state.successCount == state.chunks.length) {
       if (controller != null) {
         print('close stream');
+        fetching = false;
         controller.close();
       }
     }
