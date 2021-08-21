@@ -154,6 +154,8 @@ class Downloader {
             print('close stream');
             fetching = false;
             controller.close();
+            _cache.remove(state.url);
+            throw DownloadFailureException();
           } else {
             return;
           }
