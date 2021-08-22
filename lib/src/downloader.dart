@@ -106,7 +106,7 @@ class Downloader {
     }
     final fileSize = int.parse(resp.headers['content-length'].first);
     this.state.init(fileSize);
-    final indexies = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
+    final indexies = List<int>.generate(15, (i) => i);
     fetching = true;
     final futrues = indexies
         .sublist(0, processors)
@@ -129,7 +129,7 @@ class Downloader {
     final fileSize = int.parse(resp.headers['content-length'].first);
     this.state.init(fileSize);
     controller = new StreamController<ProcessState>();
-    final indexies = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
+    final indexies = List<int>.generate(15, (i) => i);
     fetching = true;
     for (var pid in indexies.sublist(0, processors)) {
       processor(state, pid, processors);
@@ -155,7 +155,7 @@ class Downloader {
             fetching = false;
             controller.close();
             _cache.remove(state.url);
-            throw DownloadFailureException();
+            controller = null;
           } else {
             return;
           }
@@ -174,9 +174,9 @@ class Downloader {
   Future<ProcessState> downChunk(ProcessState state, int idx) async {
     Chunk ck = state.chunks[idx];
     HttpClient c = new HttpClient();
+    c.connectionTimeout = Duration(seconds: 5);
     final req = await c.getUrl(Uri.parse(state.url));
     req.headers.add('Range', "bytes=${ck.startOffset}-${ck.endOffset - 1}");
-    //print("bytes=${ck.startOffset}-${ck.endOffset - 1}");
     final resp = await req.close();
     if (resp.statusCode >= 200 && resp.statusCode < 300) {
       for (var ls in await resp.toList()) {

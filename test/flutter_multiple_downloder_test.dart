@@ -19,10 +19,10 @@ void main() {
         p: 11);
 
     final st = dl.fetching ? dl.controller.stream : await dl.downStream();
-    print("test returned");
     await for (var state in st) {
       print("${state.successCount}/${state.chunks.length}");
     }
+    print("test returned");
     if (dl.noError) {
       final data = dl.state.asList();
       print('file download success length:${data.length}');
